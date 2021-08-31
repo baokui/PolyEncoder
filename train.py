@@ -252,6 +252,7 @@ if __name__ == '__main__':
             print_freq *= 2
 
           scheduler.step()
+          '''
           val_result = eval_running_model(val_dataloader)
           print('Global Step %d VAL res:\n' % global_step, val_result)
           log_wf.write('Global Step %d VAL res:\n' % global_step)
@@ -264,11 +265,13 @@ if __name__ == '__main__':
             print('[Saving at]', state_save_path)
             log_wf.write('[Saving at] %s\n' % state_save_path)
             torch.save(model.state_dict(), state_save_path)
+        '''
         log_wf.flush()
         pass
 
     # add a eval step after each epoch
     scheduler.step()
+    ## eval :
     val_result = eval_running_model(val_dataloader)
     print('Epoch %d, Global Step %d VAL res:\n' % (epoch, global_step), val_result)
     log_wf.write('Global Step %d VAL res:\n' % global_step)
