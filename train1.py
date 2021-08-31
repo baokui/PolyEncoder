@@ -77,8 +77,8 @@ if __name__ == '__main__':
   parser.add_argument("--use_pretrain", action="store_true")
   parser.add_argument("--architecture", required=True, type=str, help='[poly, bi]')
 
-  parser.add_argument("--max_contexts_length", default=128, type=int)
-  parser.add_argument("--max_response_length", default=64, type=int)
+  parser.add_argument("--max_contexts_length", default=64, type=int)
+  parser.add_argument("--max_response_length", default=20, type=int)
   parser.add_argument("--train_batch_size", default=32, type=int, help="Total batch size for training.")
   parser.add_argument("--eval_batch_size", default=2, type=int, help="Total batch size for eval.")
   parser.add_argument("--print_freq", default=100, type=int, help="Total batch size for eval.")
@@ -273,6 +273,7 @@ if __name__ == '__main__':
     # add a eval step after each epoch
     scheduler.step()
     ## eval :
+    '''
     val_result = eval_running_model(val_dataloader)
     print('Epoch %d, Global Step %d VAL res:\n' % (epoch, global_step), val_result)
     log_wf.write('Global Step %d VAL res:\n' % global_step)
@@ -284,6 +285,8 @@ if __name__ == '__main__':
       # save model
       print('[Saving at]', state_save_path)
       log_wf.write('[Saving at] %s\n' % state_save_path)
-      torch.save(model.state_dict(), state_save_path)
+    '''
+    torch.save(model.state_dict(), state_save_path)
     print(global_step, tr_loss / nb_tr_steps)
     log_wf.write('%d\t%f\n' % (global_step, tr_loss / nb_tr_steps))
+
