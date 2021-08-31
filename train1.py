@@ -110,6 +110,7 @@ if __name__ == '__main__':
          "See details at https://nvidia.github.io/apex/amp.html",
   )
   parser.add_argument('--gpu', type=int, default=0)
+  parser.add_argument("--trainIdx", default=0, type=int)
   args = parser.parse_args()
   print(args)
   os.environ["CUDA_VISIBLE_DEVICES"] = "%d" % args.gpu
@@ -133,7 +134,7 @@ if __name__ == '__main__':
   print('Output dir:', args.output_dir)
   print('=' * 80)
 
-  train_dataset = SelectionDataset(os.path.join(args.train_dir, 'train.txt'),
+  train_dataset = SelectionDataset(os.path.join(args.train_dir, 'train/train-{}.txt'.format(args.trainIdx)),
                                    context_transform, response_transform, sample_cnt=None)
   val_dataset = SelectionDataset(os.path.join(args.train_dir, 'test.txt'),
                                  context_transform, response_transform, sample_cnt=5000)
