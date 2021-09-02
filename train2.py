@@ -321,8 +321,8 @@ if __name__ == "__main__":
         tr_loss = 0
         nb_tr_examples, nb_tr_steps = 0, 0
         with tqdm(total=len(train_dataloader)) as bar:
-            for step, batch in enumerate(train_dataloader, start=1):
-                try:
+            try:
+                for step, batch in enumerate(train_dataloader, start=1):
                     model.train()
                     optimizer.zero_grad()
                     batch = tuple(t.to(device) for t in batch)
@@ -400,10 +400,8 @@ if __name__ == "__main__":
             """
                     log_wf.flush()
                     pass
-                except:
-                    print("Data Error")
-                    print(step, batch)
-
+            except:
+                print("Data Error")
         # add a eval step after each epoch
         scheduler.step()
         ## eval :
