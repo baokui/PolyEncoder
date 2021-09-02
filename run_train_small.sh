@@ -1,10 +1,10 @@
 export CUDA_VISIBLE_DEVICES="0,1"
-for((i=0;i<10;i++))
+for((i=1;i<10;i++))
 do
 trainIdx=$i
 python -u train2.py \
     --device 0,1 \
-    --bert_model /search/odin/guobk/data/model/bert-base-chinese_small \
+    --bert_model /search/odin/guobk/data/data_polyEncode/vpa/model_small \
     --output_dir /search/odin/guobk/data/data_polyEncode/vpa/model_small \
     --train_dir /search/odin/guobk/data/data_polyEncode/vpa/ \
     --use_pretrain \
