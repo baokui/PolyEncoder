@@ -134,7 +134,7 @@ if __name__ == '__main__':
   print('Output dir:', args.output_dir)
   print('=' * 80)
 
-  train_dataset = SelectionDataset(os.path.join(args.train_dir, 'train/train-{}.txt'.format(args.trainIdx)),
+  train_dataset = SelectionDataset(os.path.join(args.train_dir, 'train_new/train-{}.txt'.format(args.trainIdx)),
                                    context_transform, response_transform, sample_cnt=None)
   val_dataset = SelectionDataset(os.path.join(args.train_dir, 'test.txt'),
                                  context_transform, response_transform, sample_cnt=5000)
