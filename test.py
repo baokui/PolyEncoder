@@ -93,7 +93,7 @@ class Tokenizer(object):
             if self.do_lower_case:
                 text = text.lower()
             res = [self.vocab['[CLS]']]
-            for i in range(min(max_len,len(text))):
+            for i in range(min(max_len-2,len(text))):
                 if text[i] not in self.vocab:
                     res.append(self.vocab['[MASK]'])
                 else:
