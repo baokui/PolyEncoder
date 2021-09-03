@@ -361,6 +361,7 @@ if __name__ == "__main__":
         q = res_q[i:i+1]
         q = np.concatenate([q]*len(res_d),axis=0)
         sim0 = model.simlarity(torch.tensor(q).to(device), torch.tensor(res_d).to(device)).cpu().detach().numpy()
+        print(sim0.shape)
         idx = np.argsort(-sim0)
         print(idx[:10])
         print(text_D[0])
