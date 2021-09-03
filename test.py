@@ -360,7 +360,7 @@ if __name__ == "__main__":
     for i in range(len(res_q)):
         q = res_q[i:i+1]
         q = np.concatenate([q]*len(res_d),axis=0)
-        sim0 = model.simlarity(torch.tensor(q).to(device), torch.tensor(res_d).to(device)).detach().numpy()
+        sim0 = model.simlarity(torch.tensor(q).to(device), torch.tensor(res_d).to(device)).cpu().detach().numpy()
         idx = np.argsort(-sim0)
         d = {'input':text_Q[i],'res_poly':[text_D[ii]+'\t%0.4f'%sim0[ii] for ii in idx[:10]]}
         R.append(d)
