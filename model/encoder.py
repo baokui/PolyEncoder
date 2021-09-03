@@ -319,7 +319,7 @@ class BertPolyDssmModel(BertPreTrainedModel):
           0
       ]
       poly_code_ids = torch.zeros(
-          batch_size * res_cnt, 1, dtype=torch.long, device=context_input_ids.device
+          batch_size * res_cnt, 1, dtype=torch.long, device=responses_input_ids.device
       )
       poly_codes = self.poly_code_embeddings(poly_code_ids)
       responses_vec = dot_attention(
