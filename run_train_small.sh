@@ -1,4 +1,6 @@
 export CUDA_VISIBLE_DEVICES="0,1"
+for((epoch=0;epoch<3;epoch++))
+do
 for((i=0;i<10;i++))
 do
 trainIdx=$i
@@ -11,5 +13,6 @@ python -u train2.py \
     --architecture poly \
     --num_train_epochs 1 \
     --trainIdx $trainIdx \
-    --poly_m 16 >> log/train-small-$trainIdx.log 2>&1
+    --poly_m 16 >> log/train-small-$epcoh-$trainIdx.log 2>&1
+done
 done
