@@ -119,6 +119,7 @@ def dataIter(mytokenizer,batch_size = 100):
     path = '/search/odin/guobk/data/data_polyEncode/vpa/train_new/train-0.txt'
     f = open(path,'r')
     Token_con,Seg_con,Token_resp,Seg_resp = [],[],[],[]
+    Con,Resp = [],[]
     for line in f:
         context,response = line.split('\t')[1:]
         token_con,seg_con = mytokenizer.token_to_ids(context, 20)
@@ -127,12 +128,15 @@ def dataIter(mytokenizer,batch_size = 100):
         Seg_con.append(seg_con)
         Token_resp.append(token_resp)
         Seg_resp.append(seg_resp)
+        Con.append(context)
+        Resp.append(response)
         if len(Token_con)>=batch_size:
             Token_con,Seg_con,Token_resp,Seg_resp = torch.tensor(Token_con),torch.tensor(Seg_con),torch.tensor(Token_resp),torch.tensor(Seg_resp)
             Token_resp = Token_resp.view(batch_size, 1, -1)
             Seg_resp = Seg_resp.view(batch_size, 1, -1)
-            yield Token_con,Seg_con,Token_resp,Seg_resp
+            yield Token_con,Seg_con,Token_resp,Seg_resp,Con,Resp
             Token_con,Seg_con,Token_resp,Seg_resp = [],[],[],[]
+            Con,Resp = [],[]
     yield '__STOP__'
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -319,6 +323,8 @@ if __name__ == "__main__":
             context_segment_ids_list_batch,
             response_token_ids_list_batch,
             response_segment_ids_list_batch,
+            Con, 
+            Resp
         ) = batch
         batch = next(train_dataloader)
         context_input_masks_list_batch = None
@@ -331,7 +337,14 @@ if __name__ == "__main__":
             response_segment_ids_list_batch,
             response_input_masks_list_batch,
         )
-        print("TEST",step,sim)
+        sim = sim.numpy()
+        
+        if step%100==0:
+            print("TEST",step,sim)
+            R = ['\t'.join([Con[i],Resp[i],'%0.4f'%sim[i]]) for i in range(len(Con))]
+            with open(os.path.join(args.train_dir, "train_new/predict-{}.txt".format(args.trainIdx)),'w') as f:
+                f.write('\n'.join(R))
         step+=1
+        
             
 
