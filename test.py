@@ -314,39 +314,46 @@ if __name__ == "__main__":
         model, optimizer = amp.initialize(
             model, optimizer, opt_level=args.fp16_opt_level
         )
-    with open('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.json','r') as f:
-        Q = json.load(f)
-    batch_size = 100
-    i = 0
-    while i < len(Q):
-        S = [q['input'] for q in Q[i:i+batch_size]]
-        token_con,seg_con = mytokenizer.token_to_ids(S, 20)
-        token_con,seg_con = torch.tensor(token_con).to(device),torch.tensor(seg_con).to(device)
-        context_vecs = model.embed_q(token_con,seg_con).cpu().detach().numpy()
-        if i==0:
-            res_q = context_vecs
-        else:
-            res_q = np.concatenate((res_q, context_vecs))
-        i+=batch_size
-        print(i,res_q.shape)
-    np.save('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.npy',res_q)
-
-    with open('/search/odin/guobk/data/vpaSupData/Docs-0809.json','r') as f:
-        D = json.load(f)
-    batch_size = 100
-    i = 0
-    while i < len(D):
-        S = [q['content'] for q in D[i:i+batch_size]]
-        token_con,seg_con = mytokenizer.token_to_ids(S, 64,is_context=False)
-        token_con,seg_con = torch.tensor(token_con).to(device),torch.tensor(seg_con).to(device)
-        context_vecs = model.embed_d(token_con,seg_con).cpu().detach().numpy()
-        if i==0:
-            res_d = context_vecs
-        else:
-            res_d = np.concatenate((res_d, context_vecs))
-        i+=batch_size
-        print(i,res_q.shape)
-    np.save('/search/odin/guobk/data/vpaSupData/D.npy',res_d)
+    if os.path.exists('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.npy'):
+        res_q = np.load('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.npy')
+    else:
+        with open('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.json','r') as f:
+            Q = json.load(f)
+        batch_size = 100
+        i = 0
+        while i < len(Q):
+            S = [q['input'] for q in Q[i:i+batch_size]]
+            token_con,seg_con = mytokenizer.token_to_ids(S, 20)
+            token_con,seg_con = torch.tensor(token_con).to(device),torch.tensor(seg_con).to(device)
+            context_vecs = model.embed_q(token_con,seg_con).cpu().detach().numpy()
+            if i==0:
+                res_q = context_vecs
+            else:
+                res_q = np.concatenate((res_q, context_vecs))
+            i+=batch_size
+            print(i,res_q.shape)
+        np.save('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.npy',res_q)
+    if os.path.exists('/search/odin/guobk/data/vpaSupData/D.npy'):
+        res_d = np.load('/search/odin/guobk/data/vpaSupData/D.npy')
+    else:
+        with open('/search/odin/guobk/data/vpaSupData/Docs-0809.json','r') as f:
+            D = json.load(f)
+        batch_size = 100
+        i = 0
+        while i < len(D):
+            S = [q['content'] for q in D[i:i+batch_size]]
+            token_con,seg_con = mytokenizer.token_to_ids(S, 64,is_context=False)
+            token_con,seg_con = torch.tensor(token_con).to(device),torch.tensor(seg_con).to(device)
+            context_vecs = model.embed_d(token_con,seg_con).cpu().detach().numpy()
+            if i==0:
+                res_d = context_vecs
+            else:
+                res_d = np.concatenate((res_d, context_vecs))
+            i+=batch_size
+            print(i,res_d.shape)
+        np.save('/search/odin/guobk/data/vpaSupData/D.npy',res_d)
+    sim0 = model.simlarity(res_q, res_d)
+    np.save('/search/odin/guobk/data/vpaSupData/sim_poly.npy',sim0)
 
 
     # step = 0
