@@ -323,8 +323,8 @@ if __name__ == "__main__":
         with tqdm(total=len(train_dataloader)) as bar:
             try:
                 for step, batch in enumerate(train_dataloader, start=1):
-                    model.train()
-                    optimizer.zero_grad()
+                    #model.train()
+                    #optimizer.zero_grad()
                     batch = tuple(t.to(device) for t in batch)
                     (
                         context_token_ids_list_batch,
@@ -345,67 +345,10 @@ if __name__ == "__main__":
                         labels_batch,
                     )
                     print("TEST",step,loss)
-                    if multi_gpu:
-                        loss = loss.mean()
-                    tr_loss += loss.item()
-                    nb_tr_examples += context_token_ids_list_batch.size(0)
-                    nb_tr_steps += 1
-
-                    if args.fp16:
-                        with amp.scale_loss(loss, optimizer) as scaled_loss:
-                            scaled_loss.backward()
-                        torch.nn.utils.clip_grad_norm_(
-                            amp.master_params(optimizer), args.max_grad_norm
-                        )
-                    else:
-                        loss.backward()
-                        torch.nn.utils.clip_grad_norm_(
-                            model.parameters(), args.max_grad_norm
-                        )
-
-                    optimizer.step()
-                    if global_step < args.warmup_steps:
-                        scheduler.step()
-                    model.zero_grad()
-                    optimizer.zero_grad()
-                    global_step += 1
-
-                    if step % print_freq == 0:
-                        bar.update(min(print_freq, step))
-                        time.sleep(0.02)
-                        print(global_step, tr_loss / nb_tr_steps)
-                        log_wf.write("%d\t%f\n" % (global_step, tr_loss / nb_tr_steps))
-
-                    if global_step % eval_freq == 0:
-                        if global_step == 4000:
-                            eval_freq *= 2
-                            print_freq *= 2
-                        if global_step == 16000:
-                            eval_freq *= 2
-                            print_freq *= 2
-
-                        scheduler.step()
-                    
-                        """
-            val_result = eval_running_model(val_dataloader)
-            print('Global Step %d VAL res:\n' % global_step, val_result)
-            log_wf.write('Global Step %d VAL res:\n' % global_step)
-            log_wf.write(str(val_result) + '\n')
-
-            if val_result['eval_loss'] < best_eval_loss:
-                best_eval_loss = val_result['eval_loss']
-                val_result['best_eval_loss'] = best_eval_loss
-                # save model
-                print('[Saving at]', state_save_path)
-                log_wf.write('[Saving at] %s\n' % state_save_path)
-                torch.save(model.state_dict(), state_save_path)
-            """
-                    log_wf.flush()
-                    pass
             except:
                 print("Data Error")
         # add a eval step after each epoch
-        scheduler.step()
+        #scheduler.step()
         ## eval :
         """
     val_result = eval_running_model(val_dataloader)
