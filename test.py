@@ -343,7 +343,7 @@ if __name__ == "__main__":
         if i==0:
             res_d = context_vecs
         else:
-            res_d = np.concatenate((res_q, context_vecs))
+            res_d = np.concatenate((res_d, context_vecs))
         i+=batch_size
         print(i,res_q.shape)
     np.save('/search/odin/guobk/data/vpaSupData/D.npy',res_d)
