@@ -315,7 +315,7 @@ if __name__ == "__main__":
         )
     step = 0
     batch = next(train_dataloader)
-    while batch:
+    while batch!='__STOP__':
         #model.train()
         #optimizer.zero_grad()
         Con, Resp = batch[4:]
@@ -344,6 +344,7 @@ if __name__ == "__main__":
             R = ['\t'.join([Con[i],Resp[i],'%0.4f'%sim[i]]) for i in range(len(Con))]
             with open(os.path.join(args.train_dir, "train_new/predict-{}.txt".format(args.trainIdx)),'w') as f:
                 f.write('\n'.join(R))
+            break
         step+=1
         
             
