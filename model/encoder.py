@@ -233,7 +233,7 @@ class BertPolyDssmModel(BertPreTrainedModel):
         poly_code_ids = poly_code_ids.unsqueeze(0).expand(batch_size, self.poly_m)
         poly_codes = self.poly_code_embeddings(poly_code_ids)
         context_vecs = dot_attention(
-            poly_codes, state_vecs, state_vecs, context_input_masks, self.dropout
+            poly_codes, state_vecs, state_vecs, context_input_masks, dropout=None
         )
 
         ## response encoder
@@ -255,14 +255,15 @@ class BertPolyDssmModel(BertPreTrainedModel):
         )
         poly_codes = self.poly_code_embeddings(poly_code_ids)
         responses_vec = dot_attention(
-            poly_codes, state_vecs, state_vecs, responses_input_masks, self.dropout
+            poly_codes, state_vecs, state_vecs, responses_input_masks, dropout=None
         )
         responses_vec = responses_vec.view(batch_size, res_cnt, -1)
 
         ## 这里先norm一下，相当于以某种方式得到了context_vec和response_vec
         context_vecs = self.context_fc(self.dropout(context_vecs))
         context_vecs = F.normalize(context_vecs, 2, -1)  # [bs, m, dim]
-        responses_vec = self.response_fc(self.dropout(responses_vec))
+        # responses_vec = self.response_fc(self.dropout(responses_vec))
+        responses_vec = self.response_fc(responses_vec)
         responses_vec = F.normalize(responses_vec, 2, -1)
 
         ## poly final context vector aggregation
@@ -271,7 +272,7 @@ class BertPolyDssmModel(BertPreTrainedModel):
                 batch_size, batch_size, self.vec_dim
             )
         final_context_vec = dot_attention(
-            responses_vec, context_vecs, context_vecs, None, self.dropout
+            responses_vec, context_vecs, context_vecs, None, dropout=None
         )
         final_context_vec = F.normalize(
             final_context_vec, 2, -1
