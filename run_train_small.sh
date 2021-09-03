@@ -1,5 +1,5 @@
 export CUDA_VISIBLE_DEVICES="0,1"
-for((i=1;i<10;i++))
+for((i=0;i<10;i++))
 do
 trainIdx=$i
 python -u train2.py \
