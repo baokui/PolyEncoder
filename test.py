@@ -336,7 +336,7 @@ if __name__ == "__main__":
             response_segment_ids_list_batch,
             response_input_masks_list_batch,
         )
-        sim = sim.numpy()
+        sim = sim.cpu().numpy()
         
         if step%100==0:
             print("TEST",step,sim)
