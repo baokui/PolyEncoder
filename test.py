@@ -129,6 +129,8 @@ def dataIter(mytokenizer,batch_size = 100):
         Seg_resp.append(seg_resp)
         if len(Token_con)>=batch_size:
             Token_con,Seg_con,Token_resp,Seg_resp = torch.tensor(Token_con),torch.tensor(Seg_con),torch.tensor(Token_resp),torch.tensor(Seg_resp)
+            Token_resp = Token_resp.view(batch_size, 1, -1)
+            Seg_resp = Seg_resp.view(batch_size, 1, -1)
             yield Token_con,Seg_con,Token_resp,Seg_resp
             Token_con,Seg_con,Token_resp,Seg_resp = [],[],[],[]
     yield '__STOP__'
