@@ -170,7 +170,7 @@ if __name__ == "__main__":
     parser.add_argument("--vec_dim", type=int, default=64)
     args = parser.parse_args()
     print(args)
-    os.environ["CUDA_VISIBLE_DEVICES"] = "%d" % args.gpu
+    #os.environ["CUDA_VISIBLE_DEVICES"] = "%d" % args.gpu
     set_seed(args)
 
     MODEL_CLASSES = {
