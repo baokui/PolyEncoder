@@ -335,7 +335,7 @@ class BertPolyDssmModel(BertPreTrainedModel):
       return responses_vec
     def simlarity(self,context_vecs,responses_vec):
       final_context_vec = dot_attention(
-              responses_vec, context_vecs, context_vecs, None, self.dropout
+              responses_vec, context_vecs, context_vecs, None, dropout=None
           )
       final_context_vec = F.normalize(
           final_context_vec, 2, -1
