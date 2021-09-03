@@ -321,13 +321,14 @@ if __name__ == "__main__":
     while i < len(Q):
         S = [q['input'] for q in Q[i:i+batch_size]]
         token_con,seg_con = mytokenizer.token_to_ids(S, 20)
-        token_con,seg_con = torch.tensor(token_con),torch.tensor(seg_con)
+        token_con,seg_con = torch.tensor(token_con).to(device),torch.tensor(seg_con).to(device)
         context_vecs = model.embed_q(token_con,seg_con)
         if i==0:
             res_q = context_vecs
         else:
             res_q = np.concatenate((res_q, context_vecs))
         i+=batch_size
+        print(i,res_q.shape)
     np.save('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.npy',res_q)
 
     with open('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.json','r') as f:
@@ -337,13 +338,14 @@ if __name__ == "__main__":
     while i < len(D):
         S = [q['content'] for q in D[i:i+batch_size]]
         token_con,seg_con = mytokenizer.token_to_ids(S, 64,is_context=False)
-        token_con,seg_con = torch.tensor(token_con),torch.tensor(seg_con)
+        token_con,seg_con = torch.tensor(token_con).to(device),torch.tensor(seg_con).to(device)
         context_vecs = model.embed_d(token_con,seg_con)
         if i==0:
             res_d = context_vecs
         else:
             res_d = np.concatenate((res_q, context_vecs))
         i+=batch_size
+        print(i,res_q.shape)
     np.save('/search/odin/guobk/data/vpaSupData/D.npy',res_d)
 
 
