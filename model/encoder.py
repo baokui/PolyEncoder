@@ -93,8 +93,10 @@ class BertPolyDssmModel(BertPreTrainedModel):
     def __init__(self, config, *inputs, **kwargs):
         super().__init__(config, *inputs, **kwargs)
         self.bert = kwargs["bert"]
-
-        self.vec_dim = 64
+        if 'vec_dim' in kwargs:
+          self.vec_dim = kwargs['vec_dim']
+        else:
+          self.vec_dim = 64
 
         self.poly_m = kwargs["poly_m"]
         self.poly_code_embeddings = nn.Embedding(self.poly_m + 1, config.hidden_size)

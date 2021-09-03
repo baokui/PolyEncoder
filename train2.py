@@ -167,6 +167,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--device", default="0,1,2,3", type=str, required=False, help="设置使用哪些显卡"
     )
+    parser.add_argument("--vec_dim", type=int, default=64)
     args = parser.parse_args()
     print(args)
     os.environ["CUDA_VISIBLE_DEVICES"] = "%d" % args.gpu
@@ -260,7 +261,7 @@ if __name__ == "__main__":
         bert = BertModelClass(bert_config)
 
     if args.architecture == "poly":
-        model = BertPolyDssmModel(bert_config, bert=bert, poly_m=args.poly_m)
+        model = BertPolyDssmModel(bert_config, bert=bert, poly_m=args.poly_m, vec_dim=args.vec_dim)
     elif args.architecture == "bi":
         model = BertDssmModel(bert_config, bert=bert)
     else:
