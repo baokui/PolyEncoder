@@ -362,6 +362,9 @@ if __name__ == "__main__":
         q = np.concatenate([q]*len(res_d),axis=0)
         sim0 = model.simlarity(torch.tensor(q).to(device), torch.tensor(res_d).to(device)).cpu().detach().numpy()
         idx = np.argsort(-sim0)
+        print(idx[:10])
+        print(text_D[0])
+        print(sim0[0])
         d = {'input':text_Q[i],'res_poly':[text_D[ii]+'\t%0.4f'%sim0[ii] for ii in idx[:10]]}
         R.append(d)
         if i%10==0:
