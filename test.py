@@ -315,6 +315,7 @@ if __name__ == "__main__":
         )
     step = 0
     batch = next(train_dataloader)
+    batch_size = 100
     while batch!='__STOP__':
         #model.train()
         #optimizer.zero_grad()
