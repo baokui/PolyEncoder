@@ -133,8 +133,8 @@ def dataIter(mytokenizer,batch_size = 100):
         Resp.append(response)
         if len(Token_con)>=batch_size:
             Token_con,Seg_con,Token_resp,Seg_resp = torch.tensor(Token_con),torch.tensor(Seg_con),torch.tensor(Token_resp),torch.tensor(Seg_resp)
-            Token_resp = Token_resp.view(batch_size, 1, -1)
-            Seg_resp = Seg_resp.view(batch_size, 1, -1)
+            #Token_resp = Token_resp.view(batch_size, 1, -1)
+            #Seg_resp = Seg_resp.view(batch_size, 1, -1)
             yield Token_con,Seg_con,Token_resp,Seg_resp,Con,Resp
             Token_con,Seg_con,Token_resp,Seg_resp = [],[],[],[]
             Con,Resp = [],[]
@@ -329,6 +329,10 @@ if __name__ == "__main__":
         batch = next(train_dataloader)
         context_input_masks_list_batch = None
         response_input_masks_list_batch = None
+        context_vecs = model.embed_q(context_token_ids_list_batch, context_segment_ids_list_batch)
+        responses_vec = model.embed_d(response_token_ids_list_batch,response_segment_ids_list_batch)
+        sim0 = model.simlarity(context_vecs, responses_vec)
+        response_token_ids_list_batch,response_segment_ids_list_batch = response_token_ids_list_batch.view(batch_size, 1, -1),response_segment_ids_list_batch.view(batch_size, 1, -1)
         sim = model.encoding(
             context_token_ids_list_batch,
             context_segment_ids_list_batch,
@@ -340,7 +344,7 @@ if __name__ == "__main__":
         sim = sim.cpu().detach().numpy()
         
         if step%100==0:
-            print("TEST",step,sim)
+            print("TEST",step,sim,sim0)
             R = ['\t'.join([Con[i],Resp[i],'%0.4f'%sim[i]]) for i in range(len(Con))]
             with open(os.path.join(args.train_dir, "train_new/predict-{}.txt".format(args.trainIdx)),'w') as f:
                 f.write('\n'.join(R))
