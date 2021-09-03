@@ -122,7 +122,7 @@ def dataIter(mytokenizer,batch_size = 100):
     for line in f:
         context,response = line.split('\t')[1:]
         token_con,seg_con = mytokenizer.token_to_ids(context, 20)
-        token_resp,seg_resp = mytokenizer.token_to_ids(response, 64)
+        token_resp,seg_resp = mytokenizer.token_to_ids(response, 64, is_context=False)
         Token_con.append(token_con)
         Seg_con.append(seg_con)
         Token_resp.append(token_resp)
