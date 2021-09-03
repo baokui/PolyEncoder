@@ -331,7 +331,7 @@ if __name__ == "__main__":
         print(i,res_q.shape)
     np.save('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.npy',res_q)
 
-    with open('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.json','r') as f:
+    with open('/search/odin/guobk/data/vpaSupData/Docs-0809.json','r') as f:
         D = json.load(f)
     batch_size = 100
     i = 0
