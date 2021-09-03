@@ -352,7 +352,8 @@ if __name__ == "__main__":
             i+=batch_size
             print(i,res_d.shape)
         np.save('/search/odin/guobk/data/vpaSupData/D.npy',res_d)
-    sim0 = model.simlarity(res_q, res_d)
+    print(res_q.shape,res_d.shape)
+    sim0 = model.simlarity(torch.tensor(res_q).to(device), torch.tensor(res_d).to(device))
     np.save('/search/odin/guobk/data/vpaSupData/sim_poly.npy',sim0)
 
 
