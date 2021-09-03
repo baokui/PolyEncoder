@@ -317,14 +317,13 @@ if __name__ == "__main__":
     while batch:
         #model.train()
         #optimizer.zero_grad()
-        batch = tuple(t.to(device) for t in batch)
+        Con, Resp = batch[4:]
+        batch = tuple(t.to(device) for t in batch[:4])
         (
             context_token_ids_list_batch,
             context_segment_ids_list_batch,
             response_token_ids_list_batch,
             response_segment_ids_list_batch,
-            Con, 
-            Resp
         ) = batch
         batch = next(train_dataloader)
         context_input_masks_list_batch = None
