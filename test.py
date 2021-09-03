@@ -139,6 +139,7 @@ def dataIter(mytokenizer,batch_size = 100):
             Token_con,Seg_con,Token_resp,Seg_resp = [],[],[],[]
             Con,Resp = [],[]
     yield '__STOP__'
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     ## Required parameters
@@ -313,44 +314,77 @@ if __name__ == "__main__":
         model, optimizer = amp.initialize(
             model, optimizer, opt_level=args.fp16_opt_level
         )
-    step = 0
-    batch = next(train_dataloader)
+    with open('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.json','r') as f:
+        Q = json.load(f)
     batch_size = 100
-    while batch!='__STOP__':
-        #model.train()
-        #optimizer.zero_grad()
-        Con, Resp = batch[4:]
-        batch = tuple(t.to(device) for t in batch[:4])
-        (
-            context_token_ids_list_batch,
-            context_segment_ids_list_batch,
-            response_token_ids_list_batch,
-            response_segment_ids_list_batch,
-        ) = batch
-        batch = next(train_dataloader)
-        context_input_masks_list_batch = None
-        response_input_masks_list_batch = None
-        context_vecs = model.embed_q(context_token_ids_list_batch, context_segment_ids_list_batch)
-        responses_vec = model.embed_d(response_token_ids_list_batch,response_segment_ids_list_batch)
-        sim0 = model.simlarity(context_vecs, responses_vec)
-        response_token_ids_list_batch,response_segment_ids_list_batch = response_token_ids_list_batch.view(batch_size, 1, -1),response_segment_ids_list_batch.view(batch_size, 1, -1)
-        sim = model.encoding(
-            context_token_ids_list_batch,
-            context_segment_ids_list_batch,
-            context_input_masks_list_batch,
-            response_token_ids_list_batch,
-            response_segment_ids_list_batch,
-            response_input_masks_list_batch,
-        )
-        sim = sim.cpu().detach().numpy()
+    i = 0
+    while i < len(Q):
+        S = [q['input'] for q in Q[i:i+batch_size]]
+        token_con,seg_con = mytokenizer.token_to_ids(S, 20)
+        token_con,seg_con = torch.tensor(token_con),torch.tensor(seg_con)
+        context_vecs = model.embed_q(token_con,seg_con)
+        if i==0:
+            res_q = context_vecs
+        else:
+            res_q = np.concatenate((res_q, context_vecs))
+        i+=batch_size
+    np.save('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.npy',res_q)
+
+    with open('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.json','r') as f:
+        D = json.load(f)
+    batch_size = 100
+    i = 0
+    while i < len(D):
+        S = [q['content'] for q in D[i:i+batch_size]]
+        token_con,seg_con = mytokenizer.token_to_ids(S, 64,is_context=False)
+        token_con,seg_con = torch.tensor(token_con),torch.tensor(seg_con)
+        context_vecs = model.embed_d(token_con,seg_con)
+        if i==0:
+            res_d = context_vecs
+        else:
+            res_d = np.concatenate((res_q, context_vecs))
+        i+=batch_size
+    np.save('/search/odin/guobk/data/vpaSupData/D.npy',res_d)
+
+
+    # step = 0
+    # batch = next(train_dataloader)
+    # batch_size = 100
+    # while batch!='__STOP__':
+    #     #model.train()
+    #     #optimizer.zero_grad()
+    #     Con, Resp = batch[4:]
+    #     batch = tuple(t.to(device) for t in batch[:4])
+    #     (
+    #         context_token_ids_list_batch,
+    #         context_segment_ids_list_batch,
+    #         response_token_ids_list_batch,
+    #         response_segment_ids_list_batch,
+    #     ) = batch
+    #     batch = next(train_dataloader)
+    #     context_input_masks_list_batch = None
+    #     response_input_masks_list_batch = None
+    #     context_vecs = model.embed_q(context_token_ids_list_batch, context_segment_ids_list_batch)
+    #     responses_vec = model.embed_d(response_token_ids_list_batch,response_segment_ids_list_batch)
+    #     sim0 = model.simlarity(context_vecs, responses_vec)
+    #     response_token_ids_list_batch,response_segment_ids_list_batch = response_token_ids_list_batch.view(batch_size, 1, -1),response_segment_ids_list_batch.view(batch_size, 1, -1)
+    #     sim = model.encoding(
+    #         context_token_ids_list_batch,
+    #         context_segment_ids_list_batch,
+    #         context_input_masks_list_batch,
+    #         response_token_ids_list_batch,
+    #         response_segment_ids_list_batch,
+    #         response_input_masks_list_batch,
+    #     )
+    #     sim = sim.cpu().detach().numpy()
         
-        if step%100==0:
-            print("TEST",step,sim,sim0)
-            R = ['\t'.join([Con[i],Resp[i],'%0.4f'%sim[i]]) for i in range(len(Con))]
-            with open(os.path.join(args.train_dir, "train_new/predict-{}.txt".format(args.trainIdx)),'w') as f:
-                f.write('\n'.join(R))
-            break
-        step+=1
+    #     if step%100==0:
+    #         print("TEST",step,sim,sim0)
+    #         R = ['\t'.join([Con[i],Resp[i],'%0.4f'%sim[i]]) for i in range(len(Con))]
+    #         with open(os.path.join(args.train_dir, "train_new/predict-{}.txt".format(args.trainIdx)),'w') as f:
+    #             f.write('\n'.join(R))
+    #         break
+    #     step+=1
         
             
 
