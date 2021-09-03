@@ -81,8 +81,57 @@ def eval_running_model(dataloader):
         "global_step": global_step,
     }
     return result
-
-
+class Tokenizer(object):
+    def __init__(self,path_vocab,do_lower_case):
+        with open(path_vocab,'r') as f:
+            self.vocab = f.read().strip().split('\n')
+        self.vocab = {self.vocab[k]:k for k in range(len(self.vocab))}
+        self.do_lower_case = do_lower_case
+    def token_to_ids(self,text,max_len,is_context=True):
+        if type(text)==str:
+            text = text.strip()
+            if self.do_lower_case:
+                text = text.lower()
+            res = [self.vocab['[CLS]']]
+            for i in range(min(max_len,len(text))):
+                if text[i] not in self.vocab:
+                    res.append(self.vocab['[MASK]'])
+                else:
+                    res.append(self.vocab[text[i]])
+            res.append(self.vocab['[SEP]'])
+            segIds = []
+            if is_context:
+                segIds = [1 for _ in range(len(res))]
+            res = res[:max_len]
+            if len(res) < max_len:
+                res = res + [0]*(max_len-len(res))
+            tokenIds = res
+            segIds = segIds+[0]*(max_len-len(segIds))
+            return tokenIds,segIds
+        else:
+            tokenIds,segIds = [], []
+            for t in text:
+                res = self.token_to_ids(t, max_len)
+                tokenIds.append(res[0])
+                segIds.append(res[1])
+        return tokenIds,segIds
+def dataIter(mytokenizer,batch_size = 100):
+    path = '/search/odin/guobk/data/data_polyEncode/vpa/train_new/train-0.txt'
+    f = open(path,'r')
+    Token_con,Seg_con,Token_resp,Seg_resp = [],[],[],[]
+    for line in f:
+        context,response = line.split('\t')[1:]
+        token_con,seg_con = mytokenizer.token_to_ids(context, 20)
+        token_resp,seg_resp = mytokenizer.token_to_ids(response, 64)
+        Token_con.append(token_con)
+        Seg_con.append(seg_con)
+        Token_resp.append(token_resp)
+        Seg_resp.append(seg_resp)
+        if len(Token_con)>=batch_size:
+            Token_con,Seg_con,Token_resp,Seg_resp = torch.tensor(Token_con),torch.tensor(Seg_con),torch.tensor(Token_resp),torch.tensor(Seg_resp)
+            yield Token_con,Seg_con,Token_resp,Seg_resp
+            Token_con,Seg_con,Token_resp,Seg_resp = [],[],[],[]
+    yield '__STOP__'
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     ## Required parameters
@@ -198,46 +247,8 @@ if __name__ == "__main__":
     print("Train dir:", args.train_dir)
     print("Output dir:", args.output_dir)
     print("=" * 80)
-
-    train_dataset = SelectionDataset(
-        os.path.join(args.train_dir, "train_new/train-{}.txt".format(args.trainIdx)),
-        context_transform,
-        response_transform,
-        sample_cnt=None,
-    )
-    val_dataset = SelectionDataset(
-        os.path.join(args.train_dir, "test.txt"),
-        context_transform,
-        response_transform,
-        sample_cnt=5000,
-    )
-    train_dataloader = DataLoader(
-        train_dataset,
-        batch_size=args.train_batch_size,
-        collate_fn=train_dataset.batchify_join_str,
-        shuffle=True,
-    )
-    val_dataloader = DataLoader(
-        val_dataset,
-        batch_size=args.eval_batch_size,
-        collate_fn=val_dataset.batchify_join_str,
-        shuffle=False,
-    )
-    t_total = (
-        len(train_dataloader) // args.train_batch_size * (max(5, args.num_train_epochs))
-    )
-
-    epoch_start = 1
-    global_step = 0
-    best_eval_loss = float("inf")
-    best_test_loss = float("inf")
-
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
-    # shutil.copyfile(os.path.join(args.bert_model, 'vocab.txt'), os.path.join(args.output_dir, 'vocab.txt'))
-    # shutil.copyfile(os.path.join(args.bert_model, 'config.json'), os.path.join(args.output_dir, 'config.json'))
-    log_wf = open(os.path.join(args.output_dir, "log.txt"), "a", encoding="utf-8")
-
+    mytokenizer = Tokenizer(path_vocab=os.path.join(args.bert_model, "vocab.txt"),do_lower_case = True)
+    train_dataloader = dataIter(mytokenizer)
     state_save_path = os.path.join(args.output_dir, "pytorch_model.bin")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -286,12 +297,6 @@ if __name__ == "__main__":
             "weight_decay": 0.0,
         },
     ]
-    optimizer = AdamW(
-        optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon
-    )
-    scheduler = get_linear_schedule_with_warmup(
-        optimizer, num_warmup_steps=args.warmup_steps, num_training_steps=t_total
-    )
     if args.fp16:
         try:
             from apex import amp
@@ -302,68 +307,36 @@ if __name__ == "__main__":
         model, optimizer = amp.initialize(
             model, optimizer, opt_level=args.fp16_opt_level
         )
-
-    tr_total = int(
-        train_dataset.__len__()
-        / args.train_batch_size
-        / args.gradient_accumulation_steps
-        * args.num_train_epochs
-    )
-    print_freq = args.print_freq
-    eval_freq = min(len(train_dataloader) // 2, 1000)
-    print("Print freq:", print_freq, "Eval freq:", eval_freq)
-    multi_gpu = True
-    if torch.cuda.device_count() > 1:
-        print("Let's use", torch.cuda.device_count(), "GPUs!")
-        model = DataParallel(model, device_ids=[int(i) for i in args.device.split(",")])
-        multi_gpu = True
-    for epoch in range(epoch_start, int(args.num_train_epochs) + 1):
-        tr_loss = 0
-        nb_tr_examples, nb_tr_steps = 0, 0
-        with tqdm(total=len(train_dataloader)) as bar:
-            try:
-                for step, batch in enumerate(train_dataloader, start=1):
-                    #model.train()
-                    #optimizer.zero_grad()
-                    batch = tuple(t.to(device) for t in batch)
-                    (
-                        context_token_ids_list_batch,
-                        context_segment_ids_list_batch,
-                        context_input_masks_list_batch,
-                        response_token_ids_list_batch,
-                        response_segment_ids_list_batch,
-                        response_input_masks_list_batch,
-                        labels_batch,
-                    ) = batch
-                    loss = model(
-                        context_token_ids_list_batch,
-                        context_segment_ids_list_batch,
-                        context_input_masks_list_batch,
-                        response_token_ids_list_batch,
-                        response_segment_ids_list_batch,
-                        response_input_masks_list_batch,
-                        labels_batch,
-                    )
-                    print("TEST",step,loss)
-            except:
-                print("Data Error")
-        # add a eval step after each epoch
-        #scheduler.step()
-        ## eval :
-        """
-    val_result = eval_running_model(val_dataloader)
-    print('Epoch %d, Global Step %d VAL res:\n' % (epoch, global_step), val_result)
-    log_wf.write('Global Step %d VAL res:\n' % global_step)
-    log_wf.write(str(val_result) + '\n')
-
-    if val_result['eval_loss'] < best_eval_loss:
-      best_eval_loss = val_result['eval_loss']
-      val_result['best_eval_loss'] = best_eval_loss
-      # save model
-      print('[Saving at]', state_save_path)
-      log_wf.write('[Saving at] %s\n' % state_save_path)
-    """
-        torch.save(model.state_dict(), state_save_path)
-        print(global_step, tr_loss / nb_tr_steps)
-        log_wf.write("%d\t%f\n" % (global_step, tr_loss / nb_tr_steps))
+    for step, batch in enumerate(train_dataloader, start=1):
+        #model.train()
+        #optimizer.zero_grad()
+        batch = tuple(t.to(device) for t in batch)
+        (
+            context_token_ids_list_batch,
+            context_segment_ids_list_batch,
+            context_input_masks_list_batch,
+            response_token_ids_list_batch,
+            response_segment_ids_list_batch,
+            response_input_masks_list_batch,
+            labels_batch,
+        ) = batch
+        loss = model(
+            context_token_ids_list_batch,
+            context_segment_ids_list_batch,
+            context_input_masks_list_batch,
+            response_token_ids_list_batch,
+            response_segment_ids_list_batch,
+            response_input_masks_list_batch,
+            labels_batch,
+        )
+        sim = model(
+            context_token_ids_list_batch,
+            context_segment_ids_list_batch,
+            context_input_masks_list_batch,
+            response_token_ids_list_batch,
+            response_segment_ids_list_batch,
+            response_input_masks_list_batch,
+        )
+        print("TEST",step,loss,sim)
+            
 
