@@ -310,7 +310,7 @@ if __name__ == "__main__":
         )
     step = 0
     batch = next(train_dataloader)
-    if batch:
+    while batch:
         #model.train()
         #optimizer.zero_grad()
         batch = tuple(t.to(device) for t in batch)
@@ -320,9 +320,10 @@ if __name__ == "__main__":
             response_token_ids_list_batch,
             response_segment_ids_list_batch,
         ) = batch
+        batch = next(train_dataloader)
         context_input_masks_list_batch = None
         response_input_masks_list_batch = None
-        sim = model(
+        sim = model.encoding(
             context_token_ids_list_batch,
             context_segment_ids_list_batch,
             context_input_masks_list_batch,
@@ -331,5 +332,6 @@ if __name__ == "__main__":
             response_input_masks_list_batch,
         )
         print("TEST",step,sim)
+        step+=1
             
 
