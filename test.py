@@ -322,7 +322,7 @@ if __name__ == "__main__":
         S = [q['input'] for q in Q[i:i+batch_size]]
         token_con,seg_con = mytokenizer.token_to_ids(S, 20)
         token_con,seg_con = torch.tensor(token_con).to(device),torch.tensor(seg_con).to(device)
-        context_vecs = model.embed_q(token_con,seg_con)
+        context_vecs = model.embed_q(token_con,seg_con).cpu().detach().numpy()
         if i==0:
             res_q = context_vecs
         else:
@@ -339,7 +339,7 @@ if __name__ == "__main__":
         S = [q['content'] for q in D[i:i+batch_size]]
         token_con,seg_con = mytokenizer.token_to_ids(S, 64,is_context=False)
         token_con,seg_con = torch.tensor(token_con).to(device),torch.tensor(seg_con).to(device)
-        context_vecs = model.embed_d(token_con,seg_con)
+        context_vecs = model.embed_d(token_con,seg_con).cpu().detach().numpy()
         if i==0:
             res_d = context_vecs
         else:
