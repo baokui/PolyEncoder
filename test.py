@@ -121,6 +121,7 @@ def dataIter(mytokenizer,batch_size = 100):
     Token_con,Seg_con,Token_resp,Seg_resp = [],[],[],[]
     Con,Resp = [],[]
     for line in f:
+        line = line.strip()
         context,response = line.split('\t')[1:]
         token_con,seg_con = mytokenizer.token_to_ids(context, 20)
         token_resp,seg_resp = mytokenizer.token_to_ids(response, 64, is_context=False)
