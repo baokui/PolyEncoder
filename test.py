@@ -314,11 +314,15 @@ if __name__ == "__main__":
         model, optimizer = amp.initialize(
             model, optimizer, opt_level=args.fp16_opt_level
         )
+    with open('/search/odin/guobk/data/vpaSupData/Docs-0809.json','r') as f:
+        D = json.load(f)
+    with open('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.json','r') as f:
+        Q = json.load(f)
+    text_Q = [d['input'] for d in Q]
+    text_D = [d['content'] for d in D]
     if os.path.exists('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.npy'):
         res_q = np.load('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.npy')
     else:
-        with open('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.json','r') as f:
-            Q = json.load(f)
         batch_size = 100
         i = 0
         while i < len(Q):
@@ -336,8 +340,7 @@ if __name__ == "__main__":
     if os.path.exists('/search/odin/guobk/data/vpaSupData/D.npy'):
         res_d = np.load('/search/odin/guobk/data/vpaSupData/D.npy')
     else:
-        with open('/search/odin/guobk/data/vpaSupData/Docs-0809.json','r') as f:
-            D = json.load(f)
+        
         batch_size = 100
         i = 0
         while i < len(D):
@@ -353,8 +356,18 @@ if __name__ == "__main__":
             print(i,res_d.shape)
         np.save('/search/odin/guobk/data/vpaSupData/D.npy',res_d)
     print(res_q.shape,res_d.shape)
-    sim0 = model.simlarity(torch.tensor(res_q).to(device), torch.tensor(res_d).to(device))
-    np.save('/search/odin/guobk/data/vpaSupData/sim_poly.npy',sim0)
+    R = []
+    for i in range(len(res_q)):
+        q = res_q[i:i+1]
+        q = np.concatenate([q]*len(res_d),axis=0)
+        sim0 = model.simlarity(torch.tensor(res_q).to(device), torch.tensor(res_d).to(device)).detach().numpy()
+        idx = np.argsort(-sim0)
+        d = {'input':text_Q[i],'res_poly':[text_D[ii]+'\t%0.4f'%sim0[ii] for ii in idx[:10]]}
+        R.append(d)
+        if i%10==0:
+            with open('/search/odin/guobk/data/vpaSupData/res_poly.json','w') as f:
+                json.dump(R,f,ensure_ascii=False,indent=4)
+
 
 
     # step = 0
@@ -398,3 +411,4 @@ if __name__ == "__main__":
         
             
 
+def 
