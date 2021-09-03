@@ -261,7 +261,6 @@ if __name__ == "__main__":
     if args.use_pretrain:
         previous_model_file = os.path.join(args.bert_model, "pytorch_model.bin")
         print("Loading parameters from", previous_model_file)
-        log_wf.write("Loading parameters from %s" % previous_model_file + "\n")
         model_state_dict = torch.load(previous_model_file, map_location="cpu")
         bert = BertModelClass.from_pretrained(
             args.bert_model, state_dict=model_state_dict
