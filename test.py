@@ -338,7 +338,7 @@ if __name__ == "__main__":
             else:
                 res_q = np.concatenate((res_q, context_vecs))
             i+=batch_size
-            print(i,res_q.shape)
+            #print(i,res_q.shape)
         np.save('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.npy',res_q)
     if 0:
         print(0)
@@ -357,7 +357,8 @@ if __name__ == "__main__":
             else:
                 res_d = np.concatenate((res_d, context_vecs))
             i+=batch_size
-            print(i,res_d.shape)
+            if i%1000==0:
+                print(i,res_d.shape)
         np.save('/search/odin/guobk/data/vpaSupData/D.npy',res_d)
     print(res_q.shape,res_d.shape)
     R = []
