@@ -82,6 +82,40 @@ def eval_running_model(dataloader):
     }
     return result
 
+class Tokenizer(object):
+    def __init__(self,path_vocab,do_lower_case):
+        with open(path_vocab,'r') as f:
+            self.vocab = f.read().strip().split('\n')
+        self.vocab = {self.vocab[k]:k for k in range(len(self.vocab))}
+        self.do_lower_case = do_lower_case
+    def token_to_ids(self,text,max_len,is_context=True):
+        if type(text)==str:
+            text = text.strip()
+            if self.do_lower_case:
+                text = text.lower()
+            res = [self.vocab['[CLS]']]
+            for i in range(min(max_len,len(text))):
+                if text[i] not in self.vocab:
+                    res.append(self.vocab['[MASK]'])
+                else:
+                    res.append(self.vocab[text[i]])
+            res.append(self.vocab['[SEP]'])
+            segIds = []
+            if is_context:
+                segIds = [1 for _ in range(len(res))]
+            res = res[:max_len]
+            if len(res) < max_len:
+                res = res + [0]*(max_len-len(res))
+            tokenIds = res
+            segIds = segIds+[0]*(max_len-len(segIds))
+            return tokenIds,segIds
+        else:
+            tokenIds,segIds = [], []
+            for t in text:
+                res = self.token_to_ids(t, max_len)
+                tokenIds.append(res[0])
+                segIds.append(res[1])
+        return tokenIds,segIds
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -266,71 +300,26 @@ if __name__ == "__main__":
     else:
         raise Exception("Unknown architecture.")
     model.to(device)
+    mytokenizer = Tokenizer(path_vocab=os.path.join(args.bert_model, "vocab.txt"),do_lower_case = True)
+    context = '真的麻烦各位给给备注和属性，'
+    response = ['谢谢理解，给您添麻烦了','世界上是有两万人是你第一次见面就会爱上一辈子的，但你一辈子都可能遇不上一个 ——江南']
+    token_con,seg_con = mytokenizer.token_to_ids(context, 20)
+    token_resp,seg_resp = mytokenizer.token_to_ids(response, 64)
+    context_input_ids,context_segment_ids = torch.tensor([token_con]),torch.tensor([seg_con])
+    responses_input_ids,responses_segment_ids = torch.tensor(token_resp),torch.tensor(seg_resp)
+    context_vecs = model.embed_q(context_input_ids, context_segment_ids) #[1, poly_m, dim]
+    responses_vec = model.embed_d(responses_input_ids, responses_segment_ids) #[bs, 1, dim]
 
-    no_decay = ["bias", "LayerNorm.weight"]
-    optimizer_grouped_parameters = [
-        {
-            "params": [
-                p
-                for n, p in model.named_parameters()
-                if not any(nd in n for nd in no_decay)
-            ],
-            "weight_decay": args.weight_decay,
-        },
-        {
-            "params": [
-                p
-                for n, p in model.named_parameters()
-                if any(nd in n for nd in no_decay)
-            ],
-            "weight_decay": 0.0,
-        },
-    ]
-    optimizer = AdamW(
-        optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon
+train_dataset = SelectionDataset('/search/odin/guobk/data/data_polyEncode/vpa/train_new/train-0.txt',context_transform,response_transform,sample_cnt=None)
+train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=32,
+        collate_fn=train_dataset.batchify_join_str,
+        shuffle=True,
     )
-    scheduler = get_linear_schedule_with_warmup(
-        optimizer, num_warmup_steps=args.warmup_steps, num_training_steps=t_total
-    )
-    if args.fp16:
-        try:
-            from apex import amp
-        except ImportError:
-            raise ImportError(
-                "Please install apex from https://www.github.com/nvidia/apex to use fp16 training."
-            )
-        model, optimizer = amp.initialize(
-            model, optimizer, opt_level=args.fp16_opt_level
-        )
-
-    tr_total = int(
-        train_dataset.__len__()
-        / args.train_batch_size
-        / args.gradient_accumulation_steps
-        * args.num_train_epochs
-    )
-    print_freq = args.print_freq
-    eval_freq = min(len(train_dataloader) // 2, 1000)
-    print("Print freq:", print_freq, "Eval freq:", eval_freq)
-    for epoch in range(epoch_start, int(args.num_train_epochs) + 1):
-        tr_loss = 0
-        nb_tr_examples, nb_tr_steps = 0, 0
-        with tqdm(total=len(train_dataloader)) as bar:
-            try:
-                for step, batch in enumerate(train_dataloader, start=1):
-                    model.train()
-                    optimizer.zero_grad()
-                    batch = tuple(t.to(device) for t in batch)
-                    (
-                        context_token_ids_list_batch,
-                        context_segment_ids_list_batch,
-                        context_input_masks_list_batch,
-                        response_token_ids_list_batch,
-                        response_segment_ids_list_batch,
-                        response_input_masks_list_batch,
-                        labels_batch,
-                    ) = batch
-                    loss = model(
+for step, batch in enumerate(train_dataloader, start=1):
+    context_input_ids,context_segment_ids,context_input_masks,responses_input_ids,responses_segment_ids,responses_input_masks = batch[:-1]
+    loss = model(
                         context_token_ids_list_batch,
                         context_segment_ids_list_batch,
                         context_input_masks_list_batch,
@@ -339,81 +328,4 @@ if __name__ == "__main__":
                         response_input_masks_list_batch,
                         labels_batch,
                     )
-                    if multi_gpu:
-                        loss = loss.mean()
-                    tr_loss += loss.item()
-                    nb_tr_examples += context_token_ids_list_batch.size(0)
-                    nb_tr_steps += 1
-
-                    if args.fp16:
-                        with amp.scale_loss(loss, optimizer) as scaled_loss:
-                            scaled_loss.backward()
-                        torch.nn.utils.clip_grad_norm_(
-                            amp.master_params(optimizer), args.max_grad_norm
-                        )
-                    else:
-                        loss.backward()
-                        torch.nn.utils.clip_grad_norm_(
-                            model.parameters(), args.max_grad_norm
-                        )
-
-                    optimizer.step()
-                    if global_step < args.warmup_steps:
-                        scheduler.step()
-                    model.zero_grad()
-                    optimizer.zero_grad()
-                    global_step += 1
-
-                    if step % print_freq == 0:
-                        bar.update(min(print_freq, step))
-                        time.sleep(0.02)
-                        print(global_step, tr_loss / nb_tr_steps)
-                        log_wf.write("%d\t%f\n" % (global_step, tr_loss / nb_tr_steps))
-
-                    if global_step % eval_freq == 0:
-                        if global_step == 4000:
-                            eval_freq *= 2
-                            print_freq *= 2
-                        if global_step == 16000:
-                            eval_freq *= 2
-                            print_freq *= 2
-
-                        scheduler.step()
-                        """
-            val_result = eval_running_model(val_dataloader)
-            print('Global Step %d VAL res:\n' % global_step, val_result)
-            log_wf.write('Global Step %d VAL res:\n' % global_step)
-            log_wf.write(str(val_result) + '\n')
-
-            if val_result['eval_loss'] < best_eval_loss:
-                best_eval_loss = val_result['eval_loss']
-                val_result['best_eval_loss'] = best_eval_loss
-                # save model
-                print('[Saving at]', state_save_path)
-                log_wf.write('[Saving at] %s\n' % state_save_path)
-                torch.save(model.state_dict(), state_save_path)
-            """
-                    log_wf.flush()
-                    pass
-            except:
-                print("Data Error")
-        # add a eval step after each epoch
-        scheduler.step()
-        ## eval :
-        """
-    val_result = eval_running_model(val_dataloader)
-    print('Epoch %d, Global Step %d VAL res:\n' % (epoch, global_step), val_result)
-    log_wf.write('Global Step %d VAL res:\n' % global_step)
-    log_wf.write(str(val_result) + '\n')
-
-    if val_result['eval_loss'] < best_eval_loss:
-      best_eval_loss = val_result['eval_loss']
-      val_result['best_eval_loss'] = best_eval_loss
-      # save model
-      print('[Saving at]', state_save_path)
-      log_wf.write('[Saving at] %s\n' % state_save_path)
-    """
-        torch.save(model.state_dict(), state_save_path)
-        print(global_step, tr_loss / nb_tr_steps)
-        log_wf.write("%d\t%f\n" % (global_step, tr_loss / nb_tr_steps))
-
+    print(step,loss)

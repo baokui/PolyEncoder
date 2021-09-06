@@ -224,6 +224,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--device", default="0,1,2,3", type=str, required=False, help="设置使用哪些显卡"
     )
+    parser.add_argument("--path_save", default="path_save", type=str)
     args = parser.parse_args()
     print(args)
     # os.environ["CUDA_VISIBLE_DEVICES"] = "%d" % args.gpu
@@ -320,8 +321,10 @@ if __name__ == "__main__":
         Q = json.load(f)
     text_Q = [d['input'] for d in Q]
     text_D = [d['content'] for d in D]
-    if os.path.exists('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.npy'):
-        res_q = np.load('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.npy')
+    # if os.path.exists('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.npy'):
+    #     res_q = np.load('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.npy')
+    if 0:
+        print(0)
     else:
         batch_size = 100
         i = 0
@@ -337,10 +340,11 @@ if __name__ == "__main__":
             i+=batch_size
             print(i,res_q.shape)
         np.save('/search/odin/guobk/data/vpaSupData/Q-all-test-20210809-rec-bert.npy',res_q)
-    if os.path.exists('/search/odin/guobk/data/vpaSupData/D.npy'):
-        res_d = np.load('/search/odin/guobk/data/vpaSupData/D.npy')
+    if 0:
+        print(0)
+    #if os.path.exists('/search/odin/guobk/data/vpaSupData/D.npy'):
+        #res_d = np.load('/search/odin/guobk/data/vpaSupData/D.npy')
     else:
-        
         batch_size = 100
         i = 0
         while i < len(D):
@@ -362,15 +366,11 @@ if __name__ == "__main__":
         q = np.concatenate([q]*len(res_d),axis=0)
         sim0 = model.simlarity(torch.tensor(q).to(device), torch.tensor(res_d).to(device)).cpu().detach().numpy()
         sim0 = sim0[:,0]
-        print(sim0.shape)
         idx = np.argsort(-sim0)
-        print(idx[:10])
-        print(text_D[0])
-        print(sim0[0])
         d = {'input':text_Q[i],'res_poly':[text_D[ii]+'\t%0.4f'%sim0[ii] for ii in idx[:10]]}
         R.append(d)
         if i%10==0:
-            with open('/search/odin/guobk/data/vpaSupData/res_poly.json','w') as f:
+            with open(args.path_save,'w') as f:
                 json.dump(R,f,ensure_ascii=False,indent=4)
 
 
