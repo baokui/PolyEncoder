@@ -41,5 +41,5 @@ python -u test.py \
     --use_pretrain \
     --architecture poly \
     --num_train_epochs 1 \
-    --path_save /search/odin/guobk/data/vpaSupData/res_poly312.json
+    --path_save /search/odin/guobk/data/vpaSupData/res_poly312.json \
     --poly_m 16 >> log/predict-312.log 2>&1 &
